@@ -1,12 +1,12 @@
 #include <cctype>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
 
 
 bool processCommandLine(
     const std::vector<std::string>& args,
-    const std::size_t nArgs,
     std::string& inputFileName,
     std::string& outputFileName,
     bool& helpRequested,
@@ -23,6 +23,8 @@ bool processCommandLine(
 
     return bool: Returns true if there was an error in processing the arguments
     */
+
+   const std::size_t nArgs{args.size()};
 
     // Process command line arguments - ignore zeroth element, as we know this
     // to be the program name and don't need to worry about it
@@ -144,11 +146,38 @@ std::string transformChar (const char in_char)
     return out_str;
 }
 
+unsigned short int getInputText (const std::string& fileName, std::string& inputText)
+{
+    // Initialise variables
+    char inputChar{'x'};
+
+    // Read in user input from stdin/file
+    // Warn that input file option not yet implemented
+    if (!fileName.empty()) {
+        std::ifstream inputData {fileName};
+        if (!inputData.good()) {
+            std::cerr << "[error] problem reading file '" << fileName
+                    << "', please confirm the path\n";
+            return 1;
+        }
+        while (inputData >> inputChar) {
+            inputText += transformChar (inputChar);
+        }
+    }
+    else
+    {
+        // loop over each character from user input
+        while (std::cin >> inputChar) {
+            inputText += transformChar (inputChar);
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char* argv[])
 {
     // Convert the command-line arguments into a more easily usable form
     const std::vector<std::string> cmdLineArgs{argv, argv + argc};
-    const std::size_t nCmdLineArgs{cmdLineArgs.size()};
 
     // Options that might be set by the command-line arguments
     bool helpRequested{false};
@@ -160,7 +189,6 @@ int main(int argc, char* argv[])
     // ? Bad practice to call a functionn inside and if, or worth it to save deinining another variable?
     if (processCommandLine(
         cmdLineArgs,
-        nCmdLineArgs,
         inputFile,
         outputFile,
         helpRequested,
@@ -177,20 +205,12 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    // Initialise variables
-    char inputChar{'x'};
+    // Get the input text
     std::string inputText;
-
-    // Read in user input from stdin/file
-    // Warn that input file option not yet implemented
-    if (!inputFile.empty()) {
-        std::cerr << "[warning] input from file ('" << inputFile
-                  << "') not implemented yet, using stdin\n";
-    }
-
-    // loop over each character from user input
-    while (std::cin >> inputChar) {
-        inputText += transformChar (inputChar);
+    unsigned short int inputError { getInputText(inputFile, inputText) };
+    if (inputError != 0)
+    {
+        return inputError;
     }
 
     // Print out the transliterated text
