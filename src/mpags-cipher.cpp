@@ -93,13 +93,12 @@ bool processCommandLine(
     return false;
 }
 
-unsigned short int getInputText (const std::string& fileName, std::string& inputText)
+int getInputText (const std::string& fileName, std::string& inputText)
 {
     // Initialise variables
     char inputChar{'x'};
 
     // Read in user input from stdin/file
-    // Warn that input file option not yet implemented
     if (!fileName.empty()) {
         std::ifstream inputData {fileName};
         if (!inputData.good()) {
@@ -120,6 +119,26 @@ unsigned short int getInputText (const std::string& fileName, std::string& input
     }
     return 0;
 }
+
+int printOutput (const std::string& fileName, const std::string& outputText)
+{
+    // Open and write to output file if given
+    if (!fileName.empty()) {
+        std::ofstream outFile{ fileName, std::ios::app };
+        if (!outFile.good()) {
+            std::cerr << "[error] problem opening file '" << fileName << "'\n";
+            return 1;
+        }
+        outFile << outputText << "\n";
+    }
+    // Else print out the text
+    else
+    {
+        std::cout << outputText << std::endl;
+    }
+    return 0;
+}
+
 
 int main(int argc, char* argv[])
 {
@@ -154,21 +173,18 @@ int main(int argc, char* argv[])
 
     // Get the input text
     std::string inputText;
-    unsigned short int inputError { getInputText(inputFile, inputText) };
+    int inputError { getInputText(inputFile, inputText) };
     if (inputError != 0)
     {
         return inputError;
     }
 
-    // Print out the transliterated text
-
-    // Warn that output file option not yet implemented
-    if (!outputFile.empty()) {
-        std::cerr << "[warning] output to file ('" << outputFile
-                  << "') not implemented yet, using stdout\n";
+    // Save/print the text
+    int outputError { printOutput(outputFile, inputText) };
+    if (outputError != 0)
+    {
+        return outputError;
     }
-
-    std::cout << inputText << std::endl;
 
     // No requirement to return from main, but we do so for clarity
     // and for consistency with other functions
