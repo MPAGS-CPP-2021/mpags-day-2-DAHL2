@@ -11,7 +11,8 @@ bool processCommandLine(
     std::string& inputFileName,
     std::string& outputFileName,
     bool& helpRequested,
-    bool& versionRequested )
+    bool& versionRequested,
+    bool& overwriteOutput )
 {
     /* Processes command line arguments and extracts relevant information
 
@@ -47,7 +48,11 @@ bool processCommandLine(
                 inputFileName = args[i + 1];
                 ++i;
             }
-        } else if (args[i] == "-o") {
+        } else if (args[i] == "-o" || args[i] == "-ow" || args[i] == "-wo") {
+            // If called with w, set overwriteOutput to true
+            if (args[i] == "-ow" || args[i] == "-wo") {
+                overwriteOutput = true;
+            }
             // Handle output file option
             // Next element is filename unless "-o" is the last argument
             if (i == nArgs - 1) {
@@ -60,6 +65,8 @@ bool processCommandLine(
                 outputFileName = args[i + 1];
                 ++i;
             }
+        } else if (args[i] == "-w") {
+            overwriteOutput = true;
         } else {
             // Have an unknown flag to output error message and return non-zero
             // exit status to indicate failure
@@ -82,12 +89,19 @@ bool processCommandLine(
             << "                   Stdin will be used if not supplied\n\n"
             << "  -o FILE          Write processed text to FILE\n"
             << "                   Stdout will be used if not supplied\n\n"
+            << "  -w               If passed with -o, overwrites the contents\n"
+            << "                   of the output file, instead of appending.\n\n"
             << std::endl;
     }
 
     // Handle version, if requested
     if (versionRequested) {
         std::cout << "0.1.0" << std::endl;
+    }
+
+    if (overwriteOutput && outputFileName.empty()){
+        std::cout << "[error] -w requires output file to be defined using -o" << std::endl;
+        return true;
     }
 
     return false;
@@ -129,7 +143,7 @@ int getInputText (const std::string& fileName, std::string& inputText)
     return 0;
 }
 
-int printOutput (const std::string& fileName, const std::string& outputText)
+int printOutput (const std::string& fileName, const std::string& outputText, const bool overwrite = false)
 {
     /* Prints text to a specified file or console
 
@@ -141,7 +155,14 @@ int printOutput (const std::string& fileName, const std::string& outputText)
 
     // Open and write to output file if given
     if (!fileName.empty()) {
-        std::ofstream outFile{ fileName, std::ios::app };
+        std::ofstream outFile;
+        // Make the file overwrite if overwrite is set to true
+        if (overwrite) {
+            outFile.open(fileName);
+        } else {
+            outFile.open(fileName, std::ios::app);
+        }
+
         if (!outFile.good()) {
             std::cerr << "[error] problem opening file '" << fileName << "'\n";
             return 1;
@@ -167,6 +188,7 @@ int main(int argc, char* argv[])
     bool versionRequested{false};
     std::string inputFile{""};
     std::string outputFile{""};
+    bool overwriteOutput{false};
 
     // Exit with error is processCommandLine returns and error (true)
     // ? Bad practice to call a functionn inside and if, or worth it to save deinining another variable?
@@ -175,7 +197,8 @@ int main(int argc, char* argv[])
         inputFile,
         outputFile,
         helpRequested,
-        versionRequested
+        versionRequested,
+        overwriteOutput
     ) == true)
     {
         return 1;
@@ -197,7 +220,7 @@ int main(int argc, char* argv[])
     }
 
     // Save/print the text
-    int outputError { printOutput(outputFile, inputText) };
+    int outputError { printOutput(outputFile, inputText, overwriteOutput) };
     if (outputError != 0)
     {
         return outputError;
