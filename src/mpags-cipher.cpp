@@ -120,6 +120,7 @@ int getInputText (const std::string& fileName, std::string& inputText)
     }
     else
     {
+        std::cout << "Please enter the message then press 'Enter' followed by 'ctrl+D':" << std::endl;
         // loop over each character from user input
         while (std::cin >> inputChar) {
             inputText += transformChar (inputChar);
