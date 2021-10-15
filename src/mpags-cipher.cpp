@@ -95,6 +95,14 @@ bool processCommandLine(
 
 int getInputText (const std::string& fileName, std::string& inputText)
 {
+    /* Gets the input text from a specified file and saves it to a string variable
+
+    const string& fileName: Path to file to be read (if empty gets interactive input)
+    string& inputText: String to which the file contents are saved to.  
+
+    return int: Error code, 0 is success, 1 is failure
+    */
+
     // Initialise variables
     char inputChar{'x'};
 
@@ -122,6 +130,14 @@ int getInputText (const std::string& fileName, std::string& inputText)
 
 int printOutput (const std::string& fileName, const std::string& outputText)
 {
+    /* Prints text to a specified file or console
+
+    const string& fileName: Path to file to be printed to (if empty prints to console)
+    string& outputText: String to be printed
+
+    return int: Error code, 0 is success, 1 is failure
+    */
+
     // Open and write to output file if given
     if (!fileName.empty()) {
         std::ofstream outFile{ fileName, std::ios::app };
