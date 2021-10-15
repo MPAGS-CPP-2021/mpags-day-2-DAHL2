@@ -10,9 +10,12 @@ bool processCommandLine(
     const std::vector<std::string>& args,
     std::string& inputFileName,
     std::string& outputFileName,
+    bool& overwriteOutput,
     bool& helpRequested,
     bool& versionRequested,
-    bool& overwriteOutput )
+    bool& encrypt,
+    size_t& key
+    )
 {
     /* Processes command line arguments and extracts relevant information
 
@@ -26,22 +29,29 @@ bool processCommandLine(
     return bool: Returns true if there was an error in processing the arguments
     */
 
-   const std::size_t nArgs{args.size()};
+    const std::size_t nArgs{args.size()};
+    // Flag whether encryption has aldready been set
+    bool encryptionSet{false};
 
     // Process command line arguments - ignore zeroth element, as we know this
     // to be the program name and don't need to worry about it
     for (std::size_t i{1}; i < nArgs; ++i) {
+
+        // Help/version args
         if (args[i] == "-h" || args[i] == "--help") {
             helpRequested = true;
         } else if (args[i] == "--version") {
             versionRequested = true;
-        } else if (args[i] == "-i") {
+        }
+        
+        // Input/out file args
+        else if (args[i] == "-i") {
             // Handle input file option
             // Next element is filename unless "-i" is the last argument
             if (i == nArgs - 1) {
                 std::cerr << "[error] -i requires a filename argument"
                           << std::endl;
-                // exit main with non-zero return to indicate failure
+                // exit function with return true to indicate failure
                 return 1;
             } else {
                 // Got filename, so assign value and advance past it
@@ -58,7 +68,7 @@ bool processCommandLine(
             if (i == nArgs - 1) {
                 std::cerr << "[error] -o requires a filename argument"
                           << std::endl;
-                // exit main with non-zero return to indicate failure
+                // exit function with return true to indicate failure
                 return true;
             } else {
                 // Got filename, so assign value and advance past it
@@ -67,7 +77,50 @@ bool processCommandLine(
             }
         } else if (args[i] == "-w") {
             overwriteOutput = true;
-        } else {
+        }
+        
+        // Cipher arguments
+        else if (args[i] == "-e") {
+            if (encryptionSet) {
+                std::cerr << "[error] -e cannot be used with -d" << std::endl;
+                // exit function with return true to indicate failure
+                return true;
+            }
+            encryptionSet = true;
+        } else if (args[i] == "-d") {
+            if (encryptionSet) {
+                std::cerr << "[error] -d cannot be used with -e" << std::endl;
+                // exit function with return true to indicate failure
+                return true;
+            }
+            encrypt = false;
+            encryptionSet = true;
+        } else if (args[i] == "-k") {
+            // Handle key setting
+            // Next element is key value unless "-k" is the last argument
+            if (i == nArgs - 1) {
+                std::cerr << "[error] -k requires a shift argument" << std::endl;
+                // exit function with return true to indicate failure
+                return true;
+            } else {
+                // Got key, so assign value
+                try {
+                    // Want to proof against negative numbers
+                    int keyVal {stoi(args[i + 1])};
+                    key =  keyVal % 26 + 26 * (keyVal<0);
+                }
+                // Check whether stoi threw an exception => non-int input
+                catch (...) {
+                    std::cerr << "[error] -k requires an integer argument" << std::endl;
+                    // exit function with return true to indicate failure
+                    return true;
+                }
+                ++i;
+            }
+        }
+
+        // Error case
+        else {
             // Have an unknown flag to output error message and return non-zero
             // exit status to indicate failure
             std::cerr << "[error] unknown argument '" << args[i]
@@ -90,7 +143,13 @@ bool processCommandLine(
             << "  -o FILE          Write processed text to FILE\n"
             << "                   Stdout will be used if not supplied\n\n"
             << "  -w               If passed with -o, overwrites the contents\n"
-            << "                   of the output file, instead of appending.\n\n"
+            << "                     of the output file, instead of appending.\n\n"
+            << "  -e               Sets the cipher to encrypt (mutually\n"
+            << "                     exclusive with -d)\n\n"
+            << "  -d               Sets the cipher to decrypt (mutually\n"
+            << "                     exclusive with -e)\n\n"
+            << "  -k INTEGER       Shift value to use for the caesar cipher\n"
+            << "                   Should be in range 0-25\n\n"
             << std::endl;
     }
 
@@ -100,7 +159,7 @@ bool processCommandLine(
     }
 
     if (overwriteOutput && outputFileName.empty()){
-        std::cout << "[error] -w requires output file to be defined using -o" << std::endl;
+        std::cerr << "[error] -w requires output file to be defined using -o" << std::endl;
         return true;
     }
 
@@ -177,6 +236,35 @@ int printOutput (const std::string& fileName, const std::string& outputText, con
     return 0;
 }
 
+std::string runCaesarCipher( const std::string& inputText, const size_t key, const bool encrypt)
+{
+    /* Encrypt/decrypt a caesar cipher using the input text with specified key
+
+    const string& inputText: String to be encrypted/decrypted
+    const size_t key: integer in range 0-25 specifying the shift
+    const bool encrypt: true when encrypting, false when decrypting
+
+    return string: encrypted/decrypted string
+    */
+
+    // Initialise variables
+    std::string outputText;
+    char cipherChar{'x'};
+
+    // Apply the cipher character by character
+    for (const char &c: inputText) {
+        // (encrypt * 2 - 1) maps boolean 1/0 to 1/-1
+        cipherChar = c + key * (encrypt * 2 - 1);
+    
+        // Wrap character back to upper case if necessary
+        cipherChar -= 26 * (encrypt * 2 - 1) * (!isupper(cipherChar));
+        
+        outputText += cipherChar;
+    }
+
+    return outputText;
+}
+
 
 int main(int argc, char* argv[])
 {
@@ -189,6 +277,8 @@ int main(int argc, char* argv[])
     std::string inputFile{""};
     std::string outputFile{""};
     bool overwriteOutput{false};
+    bool encrypt{true};
+    size_t key{0};
 
     // Exit with error is processCommandLine returns and error (true)
     // ? Bad practice to call a functionn inside and if, or worth it to save deinining another variable?
@@ -196,9 +286,11 @@ int main(int argc, char* argv[])
         cmdLineArgs,
         inputFile,
         outputFile,
+        overwriteOutput,
         helpRequested,
         versionRequested,
-        overwriteOutput
+        encrypt,
+        key
     ) == true)
     {
         return 1;
@@ -219,8 +311,10 @@ int main(int argc, char* argv[])
         return inputError;
     }
 
+    const std::string outputText {runCaesarCipher(inputText, key, encrypt)};
+
     // Save/print the text
-    int outputError { printOutput(outputFile, inputText, overwriteOutput) };
+    int outputError { printOutput(outputFile, outputText, overwriteOutput) };
     if (outputError != 0)
     {
         return outputError;
