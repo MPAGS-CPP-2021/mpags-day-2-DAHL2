@@ -6,6 +6,13 @@
 
 std::string transformChar (const char in_char)
 {
+    /* Transliterate input character to uppercase form
+
+    const char in_char: Input character to be transliterated
+
+    return: String containing only upper case letters based on in_char
+    */
+   
     std::string out_str;
     // Uppercase alphabetic characters
     if (std::isalpha(in_char)) {
