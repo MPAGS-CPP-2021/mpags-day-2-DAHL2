@@ -11,6 +11,21 @@ system.
 Windows platforms with Visual Studio 2015 or better are also expected to
 work, but not tested.
 
+### Build with CMake
+The project is compatible with CMake version 3.2 or better.
+To build using CMake enter a build directory and run:
+```
+$ cmake <path_to_src_folder>
+```
+Once this is complete, the project can be built by running the following
+command from the build directory:
+```
+$ make
+```
+To additional depedencies, place the source and header file in the
+src/MPAGSCipher/ directory, then add the location of the source file to
+"add_executable()" in line 11 of the "CMakeLists.txt" file in "src/".
+
 To build from a clone of this repository, open a terminal window
 and change directory into that holding this README. Then run:
 ```
