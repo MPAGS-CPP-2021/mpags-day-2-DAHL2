@@ -156,6 +156,8 @@ int main(int argc, char* argv[])
     std::string inputFile{""};
     std::string outputFile{""};
 
+    // Exit with error is processCommandLine returns and error (true)
+    // ? Bad practice to call a functionn inside and if, or worth it to save deinining another variable?
     if (processCommandLine(
         cmdLineArgs,
         nCmdLineArgs,
@@ -170,6 +172,7 @@ int main(int argc, char* argv[])
 
     // If help/version number was requested, exit the program now
     // Text was already printed out in processCommandLine to save space here
+    // ? Would it be better to keep the text and return together, or OK to save space?
     if (helpRequested || versionRequested) {
         return 0;
     }
